@@ -1,6 +1,9 @@
+import base64
 from datetime import datetime
 
+from Crypto import Random
 from Crypto.PublicKey import RSA
+from Crypto.Cipher import AES
 from sqlalchemy import Column, String, DateTime
 
 from common.db_base import Base
@@ -28,12 +31,35 @@ class NotAuthorizedException(Exception):
 class SecurityApi:
 
     @classmethod
-    def encrypt(cls, text):
+    def rsa_encrypt(cls, text):
         return PUBLIC_KEY.encrypt(text, 0)[0]
 
     @classmethod
-    def decrypt(cls, encrypted_text):
+    def rsa_decrypt(cls, encrypted_text):
         return PRIVATE_KEY.decrypt(encrypted_text)
+
+    @classmethod
+    def pad(cls, s):
+        x = AES.block_size - len(s) % AES.block_size
+        return s + (bytes([x]) * x)
+
+    @classmethod
+    def aes_encrypt(cls, key, raw):
+        padded_raw = cls.pad(raw)
+        iv = Random.new().read(AES.block_size)
+        cipher = AES.new(key, AES.MODE_CBC, iv)
+        return base64.b64encode(iv + cipher.encrypt(padded_raw))
+
+    @classmethod
+    def unpad(cls, s):
+        return s[:-s[-1]]
+
+    @classmethod
+    def aes_decrypt(cls, key, enc):
+        enc = base64.b64decode(enc)
+        iv = enc[:16]
+        cipher = AES.new(key, AES.MODE_CBC, iv)
+        return cls.unpad(cipher.decrypt(enc[16:]))
 
     @classmethod
     def create_player_auth(cls, player_id, aes_key):
