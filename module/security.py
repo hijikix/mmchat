@@ -31,27 +31,41 @@ class NotAuthorizedException(Exception):
 class SecurityApi:
 
     @classmethod
-    def rsa_encrypt(cls, text):
-        return PUBLIC_KEY.encrypt(text, 0)[0]
+    def gen_rsa_key_pair(cls):
+        private_key = RSA.generate(1024)
+        public_key = private_key.publickey()
+        return private_key, public_key
 
     @classmethod
-    def rsa_decrypt(cls, encrypted_text):
-        return PRIVATE_KEY.decrypt(encrypted_text)
+    def rsa_encrypt(cls, public_key, text):
+        return public_key.encrypt(text, 0)[0]
 
     @classmethod
-    def pad(cls, s):
+    def rsa_decrypt(cls, private_key, encrypted_text):
+        return private_key.decrypt(encrypted_text)
+
+    @classmethod
+    def rsa_sign(cls, private_key, text):
+        return private_key.sign(text, "")
+
+    @classmethod
+    def rsa_verify(cls, public_key, text, signature):
+        return public_key.verify(text, signature)
+
+    @classmethod
+    def _pad(cls, s):
         x = AES.block_size - len(s) % AES.block_size
         return s + (bytes([x]) * x)
 
     @classmethod
     def aes_encrypt(cls, key, raw):
-        padded_raw = cls.pad(raw)
+        padded_raw = cls._pad(raw)
         iv = Random.new().read(AES.block_size)
         cipher = AES.new(key, AES.MODE_CBC, iv)
         return base64.b64encode(iv + cipher.encrypt(padded_raw))
 
     @classmethod
-    def unpad(cls, s):
+    def _unpad(cls, s):
         return s[:-s[-1]]
 
     @classmethod
@@ -59,7 +73,7 @@ class SecurityApi:
         enc = base64.b64decode(enc)
         iv = enc[:16]
         cipher = AES.new(key, AES.MODE_CBC, iv)
-        return cls.unpad(cipher.decrypt(enc[16:]))
+        return cls._unpad(cipher.decrypt(enc[16:]))
 
     @classmethod
     def create_player_auth(cls, player_id, aes_key):
@@ -71,5 +85,4 @@ class SecurityApi:
     def is_valid(cls, request, session):
         print(session.query(UserAuth).all())
         #raise NotAuthorizedException()
-        print("testtest")
         return True
