@@ -4,7 +4,7 @@ from datetime import datetime
 from Crypto import Random
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import AES
-from sqlalchemy import Column, String, DateTime
+from sqlalchemy import Column, String, Text, DateTime
 
 from common.db_base import Base
 from settings import PASSPHRASE, PRIVATE_KEY_PATH, PUBLIC_KEY_PATH
@@ -19,7 +19,9 @@ class UserAuth(Base):
     __tablename__ = 'user_auth'
 
     user_id = Column(String(64), primary_key=True)
-    aes_key = Column(String(32))
+    aes_key = Column(Text())
+    private_key_pem = Column(Text())
+    public_key_pem = Column(Text())
     created_at = Column(DateTime, default=datetime.now)
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
 
@@ -58,10 +60,10 @@ class SecurityApi:
         return s + (bytes([x]) * x)
 
     @classmethod
-    def aes_encrypt(cls, key, raw):
+    def aes_encrypt(cls, aes_key, raw):
         padded_raw = cls._pad(raw)
         iv = Random.new().read(AES.block_size)
-        cipher = AES.new(key, AES.MODE_CBC, iv)
+        cipher = AES.new(aes_key, AES.MODE_CBC, iv)
         return base64.b64encode(iv + cipher.encrypt(padded_raw))
 
     @classmethod
@@ -69,17 +71,29 @@ class SecurityApi:
         return s[:-s[-1]]
 
     @classmethod
-    def aes_decrypt(cls, key, enc):
+    def aes_decrypt(cls, aes_key, enc):
         enc = base64.b64decode(enc)
         iv = enc[:16]
-        cipher = AES.new(key, AES.MODE_CBC, iv)
+        cipher = AES.new(aes_key, AES.MODE_CBC, iv)
         return cls._unpad(cipher.decrypt(enc[16:]))
 
     @classmethod
-    def create_player_auth(cls, player_id, aes_key):
-        player_auth = UserAuth.objects.create(
-            player_id=player_id, aes_key=aes_key)
-        return player_auth
+    def create_user_auth(cls, user_id, aes_key, private_key_pem, public_key_pem, session):
+        user_auth = UserAuth(user_id=user_id.decode("utf-8"), aes_key=aes_key.decode("utf-8"),
+                             private_key_pem=private_key_pem.decode("utf-8"), public_key_pem=public_key_pem.decode("utf-8"))
+        session.add(user_auth)
+
+    @classmethod
+    def authorize(cls, encrypted_user_id, encrypted_aes_key, session):
+        user_id = cls.rsa_decrypt(PRIVATE_KEY, encrypted_user_id)
+        aes_key = cls.rsa_decrypt(PRIVATE_KEY, encrypted_aes_key)
+        private_key, public_key = cls.gen_rsa_key_pair()
+        private_key_pem = private_key.exportKey()
+        public_key_pem = public_key.exportKey()
+        cls.create_user_auth(user_id, aes_key, private_key_pem,
+                             public_key_pem, session)
+        encrypted_private_key = cls.aes_encrypt(aes_key, private_key_pem)
+        return encrypted_private_key
 
     @classmethod
     def is_valid(cls, request, session):
