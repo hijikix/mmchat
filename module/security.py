@@ -78,10 +78,15 @@ class SecurityApi:
         return cls._unpad(cipher.decrypt(enc[16:]))
 
     @classmethod
-    def create_user_auth(cls, user_id, aes_key, private_key_pem, public_key_pem, session):
-        user_auth = UserAuth(user_id=user_id.decode("utf-8"), aes_key=aes_key.decode("utf-8"),
-                             private_key_pem=private_key_pem.decode("utf-8"), public_key_pem=public_key_pem.decode("utf-8"))
+    def create_user_auth(cls, user_id, aes_key,
+                         private_key_pem, public_key_pem, session):
+        user_auth = UserAuth(
+            user_id=user_id.decode("utf-8"),
+            aes_key=aes_key.decode("utf-8"),
+            private_key_pem=private_key_pem.decode("utf-8"),
+            public_key_pem=public_key_pem.decode("utf-8"))
         session.add(user_auth)
+        return user_auth
 
     @classmethod
     def authorize(cls, encrypted_user_id, encrypted_aes_key, session):
@@ -90,13 +95,6 @@ class SecurityApi:
         private_key, public_key = cls.gen_rsa_key_pair()
         private_key_pem = private_key.exportKey()
         public_key_pem = public_key.exportKey()
-        cls.create_user_auth(user_id, aes_key, private_key_pem,
-                             public_key_pem, session)
-        encrypted_private_key = cls.aes_encrypt(aes_key, private_key_pem)
-        return encrypted_private_key
-
-    @classmethod
-    def is_valid(cls, request, session):
-        print(session.query(UserAuth).all())
-        #raise NotAuthorizedException()
-        return True
+        user_auth = cls.create_user_auth(user_id, aes_key, private_key_pem,
+                                         public_key_pem, session)
+        return user_auth

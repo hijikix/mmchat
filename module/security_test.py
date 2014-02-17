@@ -43,13 +43,11 @@ class TestSecurityApi(TestBase):
         aes_key = b"039D40E223EBE14D5B844FA476786390"
         encrypted_user_id = SecurityApi.rsa_encrypt(PUBLIC_KEY, user_id)
         encrypted_aes_key = SecurityApi.rsa_encrypt(PUBLIC_KEY, aes_key)
-        session = self.get_session()
-        encrypted_private_key = SecurityApi.authorize(encrypted_user_id, encrypted_aes_key, session)
-        session.commit()
 
-    def test_is_valid(self):
-        is_valid = SecurityApi.is_valid("request", self.get_session())
-        self.assertTrue(is_valid)
+        session = self.get_session()
+        user_auth = SecurityApi.authorize(
+            encrypted_user_id, encrypted_aes_key, session)
+        session.commit()
 
 
 if __name__ == '__main__':
