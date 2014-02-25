@@ -5,6 +5,7 @@ from common.db_base import Base
 
 
 class Geometry(UserDefinedType):
+
     def get_col_spec(self):
         return "GEOMETRY"
 
@@ -73,9 +74,32 @@ class Station(Base):
 class StationApi:
 
     @classmethod
-    def get_nearest_stations(cls, lon, lat, limit=1):
+    def get_nearest_stations(cls, lon, lat, range, limit, session):
         """
         指定座標の最寄り駅を取得
         """
-        pnt = cls.lon_lat_to_point(lon, lat)
-        return Station.objects.distance(pnt).order_by('distance')[:limit]
+        sql = """
+SELECT station_cd, station_name FROM station
+WHERE MBRContains(
+  GeomFromText(
+    Concat('LineString(',
+      {lat} + {range} , ' ',
+      {lon} + {range} , ',',
+      {lat} - {range} , ' ',
+      {lon} - {range} , ')'
+    )
+  ),
+  latlon
+)
+ORDER BY GLength(
+  GeomFromText(
+    CONCAT(
+       'LineString({lat} {lon},',
+       X( `latlon` ) , ' ',
+       Y( `latlon` ) , ')'
+    )
+  )
+) LIMIT {limit};
+""".format(lon=lon, lat=lat, range=range, limit=limit)
+        return session.query(Station.station_cd, Station.station_name).from_statement(sql).all()
+
