@@ -13,8 +13,9 @@ class TestStationApi(TestBase):
         session = self.get_session()
         lon = 139.728001
         lat = 35.628832
-        nearest_stations = StationApi.get_nearest_stations(lon, lat, 5, 1, session)
-        print(nearest_stations)
+        distance = 5
+        nearest_stations = StationApi.get_nearest_stations(lon, lat, 3, distance, session)
+        self.assertEqual(distance, len(nearest_stations))
 
 
 if __name__ == '__main__':

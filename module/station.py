@@ -12,9 +12,6 @@ class Geometry(UserDefinedType):
     def bind_expression(self, bindvalue):
         return func.GeomFromText(bindvalue, type_=self)
 
-    def column_expression(self, col):
-        return func.ST_AsText(col, type_=self)
-
 
 class Line(Base):
     __tablename__ = 'line'
@@ -74,7 +71,7 @@ class Station(Base):
 class StationApi:
 
     @classmethod
-    def get_nearest_stations(cls, lon, lat, range, limit, session):
+    def get_nearest_stations(cls, lon, lat, distance, limit, session):
         """
         指定座標の最寄り駅を取得
         """
@@ -83,10 +80,10 @@ SELECT station_cd, station_name FROM station
 WHERE MBRContains(
   GeomFromText(
     Concat('LineString(',
-      {lat} + {range} , ' ',
-      {lon} + {range} , ',',
-      {lat} - {range} , ' ',
-      {lon} - {range} , ')'
+      {lat} + {distance} , ' ',
+      {lon} + {distance} , ',',
+      {lat} - {distance} , ' ',
+      {lon} - {distance} , ')'
     )
   ),
   latlon
@@ -100,6 +97,5 @@ ORDER BY GLength(
     )
   )
 ) LIMIT {limit};
-""".format(lon=lon, lat=lat, range=range, limit=limit)
-        return session.query(Station.station_cd, Station.station_name).from_statement(sql).all()
-
+""".format(lon=lon, lat=lat, distance=distance, limit=limit)
+        return session.query(Station).from_statement(sql).all()
