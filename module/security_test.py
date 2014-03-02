@@ -10,6 +10,9 @@ class TestSecurityApi(TestBase):
     def setUp(self):
         super().setUp()
 
+    def tearDown(self):
+        super().tearDown()
+
     def test_gen_rsa_key_pair(self):
         private_key, public_key = SecurityApi.gen_rsa_key_pair()
         plane_text = b"hello world"
@@ -44,10 +47,8 @@ class TestSecurityApi(TestBase):
         encrypted_user_id = SecurityApi.rsa_encrypt(PUBLIC_KEY, user_id)
         encrypted_aes_key = SecurityApi.rsa_encrypt(PUBLIC_KEY, aes_key)
 
-        session = self.get_session()
         user_auth = SecurityApi.authorize(
-            encrypted_user_id, encrypted_aes_key, session)
-        session.commit()
+            encrypted_user_id, encrypted_aes_key)
 
 
 if __name__ == '__main__':

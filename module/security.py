@@ -7,6 +7,7 @@ from Crypto.Cipher import AES
 from sqlalchemy import Column, String, Text, DateTime
 
 from common.db_base import Base
+from common.db_base import Session
 from settings import PASSPHRASE, PRIVATE_KEY_PATH, PUBLIC_KEY_PATH
 
 PRIVATE_KEY = RSA.importKey(
@@ -79,22 +80,22 @@ class SecurityApi:
 
     @classmethod
     def create_user_auth(cls, user_id, aes_key,
-                         private_key_pem, public_key_pem, session):
+                         private_key_pem, public_key_pem):
         user_auth = UserAuth(
             user_id=user_id.decode("utf-8"),
             aes_key=aes_key.decode("utf-8"),
             private_key_pem=private_key_pem.decode("utf-8"),
             public_key_pem=public_key_pem.decode("utf-8"))
-        session.add(user_auth)
+        Session.add(user_auth)
         return user_auth
 
     @classmethod
-    def authorize(cls, encrypted_user_id, encrypted_aes_key, session):
+    def authorize(cls, encrypted_user_id, encrypted_aes_key):
         user_id = cls.rsa_decrypt(PRIVATE_KEY, encrypted_user_id)
         aes_key = cls.rsa_decrypt(PRIVATE_KEY, encrypted_aes_key)
         private_key, public_key = cls.gen_rsa_key_pair()
         private_key_pem = private_key.exportKey()
         public_key_pem = public_key.exportKey()
         user_auth = cls.create_user_auth(user_id, aes_key, private_key_pem,
-                                         public_key_pem, session)
+                                         public_key_pem)
         return user_auth

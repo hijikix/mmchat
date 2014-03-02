@@ -1,24 +1,17 @@
 import unittest
 
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-
-from common.db_base import Base
-from settings import CREATE_ENGINE_URL, CREATE_ENGINE_CONF
+from common.db_base import Session
 
 
 class TestBase(unittest.TestCase):
 
     def setUp(self):
-        self.create_engine()
-        self.create_test_db()
+        pass
 
-    def create_engine(self):
-        self.engine = create_engine(CREATE_ENGINE_URL, **CREATE_ENGINE_CONF)
+    def tearDown(self):
+        # ローカルセションを閉じる
+        self.remove_session()
 
-    def create_test_db(self):
-        Base.metadata.create_all(self.engine)
-
-    def get_session(self):
-        Session = sessionmaker(bind=self.engine)
-        return Session()
+    def remove_session(self):
+        Session.commit()
+        Session.remove()

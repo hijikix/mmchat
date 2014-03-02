@@ -1,20 +1,29 @@
-from command.base import BaseCommand
+
 from module.station import *
 from module.security import *
+from command.base import BaseCommand
+from common.db_base import Base, engine, session_factory
 
 
 class Command(BaseCommand):
+
     def run(self, *args, **options):
-        engine = self.create_engine()
-        session = self.get_session()
+
+        # DB名取得
+        session = session_factory()
         database = session.bind.url.database
+        session.close()
 
-        engine.execute("drop database {database}".format(database=database))
-        engine.execute("create database {database}".format(database=database))
+        # DB再作成
+        connection = engine.connect()
+        connection.execute(
+            "drop database {database}".format(database=database))
+        connection.execute(
+            "create database {database}".format(database=database))
 
-        # 再取得
-        engine = self.create_engine()
+        # テーブル作成
         Base.metadata.create_all(engine)
+        connection.close()
 
 
 if __name__ == '__main__':

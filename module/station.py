@@ -2,6 +2,7 @@ from sqlalchemy import Column, String, Integer, DECIMAL, DateTime, func
 from sqlalchemy.types import UserDefinedType
 
 from common.db_base import Base
+from common.db_base import Session
 
 
 class Geometry(UserDefinedType):
@@ -71,7 +72,7 @@ class Station(Base):
 class StationApi:
 
     @classmethod
-    def get_nearest_stations(cls, lon, lat, distance, limit, session):
+    def get_nearest_stations(cls, lon, lat, distance, limit):
         """
         指定座標の最寄り駅を取得
         """
@@ -98,4 +99,4 @@ ORDER BY GLength(
   )
 ) LIMIT {limit};
 """.format(lon=lon, lat=lat, distance=distance, limit=limit)
-        return session.query(Station).from_statement(sql).all()
+        return Session.query(Station).from_statement(sql).all()

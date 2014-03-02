@@ -10,11 +10,10 @@ class TestStationApi(TestBase):
         super().setUp()
 
     def test_get_nearest_stations(self):
-        session = self.get_session()
         lon = 139.728001
         lat = 35.628832
         distance = 5
-        nearest_stations = StationApi.get_nearest_stations(lon, lat, 3, distance, session)
+        nearest_stations = StationApi.get_nearest_stations(lon, lat, 3, distance)
         self.assertEqual(distance, len(nearest_stations))
 
 
